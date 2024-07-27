@@ -27,7 +27,7 @@ Getting Started
 1. **Clone the repository:**
 
    ```
-   git clone https://github.com/yourusername/darktheme-auth-fastapi-server.git
+   git clone https://github.com/georgekhananaev/darktheme-auth-fastapi-server.git
    cd darktheme-auth-fastapi-server
    ```
 
@@ -39,11 +39,11 @@ Getting Started
    FASTAPI_UI_PASSWORD=your_ui_password
    ```
 
-   3. **Build and start the Docker containers:**
+3. **Build and start the Docker containers:**
 
-      ```bash
-      docker-compose up --build
-      ```
+   ```bash
+   docker-compose up --build
+   ```
 
    This command builds the Docker images and starts the containers for the application and Redis.
 
