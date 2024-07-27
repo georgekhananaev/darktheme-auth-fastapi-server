@@ -39,13 +39,16 @@ Getting Started
    FASTAPI_UI_PASSWORD=your_ui_password
    ```
 
-3. **Build and start the Docker containers:**
+   3. **Build and start the Docker containers:**
 
-   ```
-   docker-compose up --build
-   ```
+      ```bash
+      docker-compose up --build
+      ```
 
    This command builds the Docker images and starts the containers for the application and Redis.
+
+   ![accessibility text](/screenshots/running_server.png)
+
 
 Usage
 -----
@@ -89,3 +92,14 @@ Contact
 -------
 
 For more information, please contact the project maintainers at `george.khananaev+github@gmail.com`.
+
+Logs
+-------
+![accessibility text](/screenshots/logs.png)
+
+
+Other Screenshots
+-------
+![hover text](/screenshots/protected_docs.png)
+![accessibility text](/screenshots/docs.png)
+![accessibility text](/screenshots/response.png)

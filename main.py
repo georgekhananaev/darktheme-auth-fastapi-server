@@ -91,9 +91,9 @@ async def get_open_api_endpoint():
     """
     from fastapi.openapi.utils import get_openapi
     openapi_schema = get_openapi(
-        title="Booking.com API",
+        title="darktheme-auth-fastapi-server",
         version="v25.07.2024",
-        description="Booking.com Unofficial API",
+        description="API server with authentication and authorization.",
         routes=app.routes,
     )
     return openapi_schema
