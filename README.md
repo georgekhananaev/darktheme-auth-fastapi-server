@@ -5,6 +5,24 @@ darktheme-auth-fastapi-server is a robust and versatile template FastAPI server,
 
 By leveraging this template, you can focus on developing your unique application features without worrying about the underlying infrastructure. The custom dark theme for the documentation not only enhances the visual appeal but also ensures a consistent and professional look across your development and production environments. For those who dislike the strain of staring at a bright white screen all day, this dark-themed documentation provides a much-needed visual relief, making the development process more comfortable and enjoyable.
 
+## Screenshots
+
+<p align="center">
+  <img src="/screenshots/swagger-ui-docs.png" alt="Dark Theme Swagger UI" width="900">
+  <br><em>Dark Theme Swagger UI Documentation</em>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="/screenshots/running_server.png" alt="Running Server" width="100%"><br><em>Server running in terminal</em></td>
+    <td width="50%"><img src="/screenshots/docs-protected.png" alt="Protected Documentation" width="100%"><br><em>Authentication-protected documentation</em></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="/screenshots/access-with-api-key.png" alt="API Key Authentication" width="100%"><br><em>API key authentication</em></td>
+    <td width="50%"><img src="/screenshots/logs-db-stracture.png" alt="Logs Database Structure" width="100%"><br><em>SQLite logs database structure</em></td>
+  </tr>
+</table>
+
 --------
 
 - **Authentication & Security**: Includes token-based authentication for securing API endpoints and HTTP Basic authentication for accessing documentation.
@@ -75,7 +93,23 @@ Getting Started
 
    This command builds the Docker images and starts the containers for the application and optionally Redis.
 
-   ![accessibility text](/screenshots/running_server.png)
+## Screenshots
+
+<p align="center">
+  <img src="/screenshots/swagger-ui-docs.png" alt="Dark Theme Swagger UI" width="900">
+  <br><em>Dark Theme Swagger UI Documentation</em>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="/screenshots/running_server.png" alt="Running Server" width="100%"><br><em>Server running in terminal</em></td>
+    <td width="50%"><img src="/screenshots/docs-protected.png" alt="Protected Documentation" width="100%"><br><em>Authentication-protected documentation</em></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="/screenshots/access-with-api-key.png" alt="API Key Authentication" width="100%"><br><em>API key authentication</em></td>
+    <td width="50%"><img src="/screenshots/logs-db-stracture.png" alt="Logs Database Structure" width="100%"><br><em>SQLite logs database structure</em></td>
+  </tr>
+</table>
 
 #### Running Locally
 
