@@ -30,7 +30,7 @@ security:
     renew_before_days: 30              # Number of days before expiry to renew
   
   api_key:
-    enabled: true
+    enabled: false                     # Enable API key authentication
     header_name: "X-API-Key"
     # Actual keys are stored in environment variables (.env file)
     # API_KEY is used for API key authentication

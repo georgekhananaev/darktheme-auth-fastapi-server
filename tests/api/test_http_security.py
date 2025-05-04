@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
 from modules.config import config
-from main import app
 
 
 class TestHTTPSecurity:
@@ -29,7 +28,7 @@ class TestHTTPSecurity:
             client.headers["host"] = "testserver:8000"
             
             # The first request should be a redirect to HTTPS
-            response = client.get("/api/v1/system/ping", allow_redirects=False)
+            response = client.get("/api/v1/system/ping", follow_redirects=False)
             
             # Check that we got a redirect
             assert response.status_code == 301

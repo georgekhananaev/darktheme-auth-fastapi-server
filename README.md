@@ -26,6 +26,7 @@ By leveraging this template, you can focus on developing your unique application
 --------
 
 - **Authentication & Security**: Includes token-based authentication for securing API endpoints and HTTP Basic authentication for accessing documentation.
+- **Multiple Authentication Methods**: Support for Bearer tokens and API key authentication, with configuration options for each.
 - **Enhanced HTTP Security**: Offers HTTP disabling, HTTP-to-HTTPS redirection, and Let's Encrypt integration for comprehensive security.
 - **Protected Documentation**: Custom dark-themed Swagger UI and ReDoc documentation, accessible only after authentication.
 - **Optional Redis Caching**: Utilizes Redis for caching to improve performance and reduce load on backend services. Can be disabled for simpler deployments.
@@ -159,6 +160,74 @@ Usage
   - `end_date`: Filter logs before this date (YYYY-MM-DD)
   - `search`: Search term in log messages
 
+Authentication System
+-------------------
+
+The application supports multiple authentication methods to provide flexible security options:
+
+### Authentication Methods
+
+1. **Bearer Token Authentication**: 
+   - JWT-based authentication for API endpoints
+   - Configured with the `BEARER_SECRET_KEY` environment variable
+   - Default option for securing all API endpoints
+
+2. **API Key Authentication**:
+   - Simple API key-based authentication as an alternative to tokens
+   - Configured through `API_KEY` environment variable and enabled in config.yaml
+   - API keys are passed in the HTTP header specified in configuration (default: `X-API-Key`)
+
+3. **HTTP Basic Authentication**:
+   - Used for accessing documentation (Swagger UI and ReDoc)
+   - Configured with `FASTAPI_UI_USERNAME` and `FASTAPI_UI_PASSWORD` environment variables
+
+### Configuration
+
+The `config.yaml` file determines whether API key authentication is enabled:
+
+```yaml
+security:
+  api_key:
+    enabled: true                    # Set to false to disable API key authentication
+    header_name: "X-API-Key"         # Customize the header name if needed
+```
+
+API keys and bearer tokens are stored in environment variables:
+
+```
+BEARER_SECRET_KEY=your_secret_key
+API_KEY=your_api_key
+```
+
+### Authentication Flow
+
+1. **Request Processing**:
+   - Middleware examines incoming requests for authentication credentials
+   - Checks for Bearer token in Authorization header
+   - If API key authentication is enabled, checks for API key in configured header
+
+2. **Multiple Authentication Options**:
+   - Endpoints can be configured to accept either Bearer token or API key
+   - If both are provided, Bearer token takes precedence
+   - Authentication methods can be selected based on security requirements
+
+### Testing Authentication
+
+The test suite includes comprehensive tests for both authentication methods:
+
+1. **Configuration-Aware Tests**:
+   - Tests automatically adapt based on the API key configuration
+   - If API keys are disabled in config.yaml, API key tests are skipped
+   - Bearer token tests always run since that authentication is always available
+
+2. **Auth Client Fixtures**:
+   - `auth_client`: A test client with a pre-configured Bearer token
+   - `api_key_client`: A test client with a pre-configured API key
+
+3. **Authentication Override**:
+   - Tests use a special fixture to override authentication during testing
+   - This allows testing without requiring real secrets or tokens
+
 Project Structure
 -----------------
 
@@ -166,6 +235,7 @@ Project Structure
 - **`config.yaml`**: Configuration file for the application settings.
 - **`db/`**: Contains database clients (Redis and SQLite).
 - **`auth/`**: Includes authentication-related functions and security settings.
+  - **`fastapi_auth.py`**: Core authentication functionality for Bearer tokens and API keys.
 - **`routers/`**: Contains route definitions and API logic.
   - **`certificates.py`**: Let's Encrypt certificate management endpoints.
   - **`logs.py`**: Log access and retrieval endpoints.
@@ -178,6 +248,10 @@ Project Structure
 - **`certs/`**: Directory where SSL/TLS certificates are stored.
 - **`logs/`**: Directory where logs and log database are stored.
 - **`tests/`**: Comprehensive test suite including unit, API, benchmark, and stability tests.
+  - **`api/`**: Tests for API endpoints and authentication.
+  - **`benchmark/`**: Performance testing for API endpoints.
+  - **`stability/`**: Long-running stability tests.
+  - **`unit/`**: Unit tests for individual modules.
 
 Testing
 -------
@@ -196,12 +270,94 @@ The application includes a comprehensive test suite to verify functionality, per
 # --report-dir DIR: Specify report directory (default: test_reports)
 ```
 
+You can also run tests using pytest directly:
+
+```bash
+# Run all tests
+python -m pytest
+
+# Run specific test categories
+python -m pytest tests/api/  # API tests
+python -m pytest tests/unit/  # Unit tests
+
+# Run specific test files
+python -m pytest tests/api/test_logs_router.py
+
+# Run with verbose output
+python -m pytest -v
+```
+
+### Testing Prerequisites
+
+Before running tests, ensure the following:
+
+1. **API Key Authentication**: For API tests, API key authentication should be disabled in config.yaml:
+   ```yaml
+   security:
+     api_key:
+       enabled: false
+   ```
+
+2. **Benchmark and Stability Tests**: For these tests, the API server must be running:
+   ```bash
+   # Start server in one terminal
+   uvicorn main:app --host 0.0.0.0 --port 8000
+   
+   # Then run tests in another terminal
+   python -m pytest tests/benchmark/
+   python -m pytest tests/stability/
+   ```
+
 ### Test Categories
 
 - **Unit Tests**: Test individual components and functions.
+  - Located in `tests/unit/`
+  - Focus on specific functionality of modules
+  - Mock external dependencies for isolation
+
 - **API Tests**: Test API endpoints and integration.
+  - Located in `tests/api/`
+  - Test authentication, error handling, and data processing
+  - Configuration-aware tests that respect settings in config.yaml
+  - Includes tests for HTTP security, logs, certificates, and system information
+  
 - **Benchmark Tests**: Measure performance metrics of endpoints.
+  - Located in `tests/benchmark/`
+  - **Require a running server instance on localhost:8000**
+  - Measure response times, throughput, and error rates
+  - Generate performance reports
+  - Must be run separately after starting the server
+
 - **Stability Tests**: Test application behavior under prolonged load.
+  - Located in `tests/stability/`
+  - **Require a running server instance on localhost:8000**
+  - Run long-duration tests to identify memory leaks or performance degradation
+  - Simulate realistic usage patterns
+  - Must be run separately after starting the server
+
+### Test Design Features
+
+1. **Configuration-Aware Testing**:
+   - Tests automatically adapt based on configuration settings
+   - Skip tests for features that are disabled (e.g., API key authentication)
+   - Verify that disabled features are actually inaccessible
+
+2. **Custom Test Fixtures**:
+   - `auth_client`: Pre-authenticated test client with Bearer token
+   - `api_key_client`: Test client using API key authentication
+   - `client_with_http_disabled`: Test client for HTTP disabled tests
+   - `mock_redis`: Mock Redis client for testing without a real Redis server
+   - `mock_logger`: Mock logging functionality for test isolation
+
+3. **Advanced Mocking**:
+   - Mock asynchronous functions properly
+   - Simulate errors and edge cases
+   - Provide controlled test environments for reproducible results
+
+4. **Direct Test Endpoints**:
+   - Custom endpoints in test app to bypass routers for more reliable testing
+   - Avoid reliance on mock assertions which can be brittle
+   - Test actual behavior rather than implementation details
 
 ### Test Reports
 
@@ -210,6 +366,7 @@ Tests generate detailed reports including:
 - Percentile distributions
 - Performance summaries
 - Memory usage tracking
+- Error logs and tracebacks
 
 Logging System
 -------------
@@ -233,6 +390,7 @@ The application offers multiple ways to enhance HTTP security:
 - **HTTP to HTTPS Redirection**: Automatically redirect HTTP requests to HTTPS
 - **Let's Encrypt Integration**: Automate SSL/TLS certificate issuance and renewal
 - **Flexible Configuration**: Configure security settings via config.yaml
+- **Testing Support**: Comprehensive test suite for all security features
 
 ### HTTP Security Configuration
 
@@ -264,6 +422,37 @@ The application offers multiple ways to enhance HTTP security:
        enabled: true
        redirect_http: false  # No redirection
    ```
+
+### HTTP Security Implementation Details
+
+HTTP security is implemented through FastAPI middleware components:
+
+1. **HTTPDisableMiddleware**: Completely blocks HTTP requests when HTTP is disabled
+   - Checks the X-Forwarded-Proto header to determine if the request is HTTP or HTTPS
+   - Returns a 400 Bad Request response for HTTP requests when HTTP is disabled
+   - Configuration-driven through the config.yaml file
+
+2. **HTTPSRedirectMiddleware**: Redirects HTTP requests to HTTPS when redirection is enabled
+   - Preserves the original request path and query parameters
+   - Returns a 307 Temporary Redirect response with the HTTPS URL
+   - Only active when both HTTP and HTTPS are enabled, and redirect_http is true
+
+### Testing HTTP Security
+
+The application includes comprehensive tests for HTTP security features:
+
+1. **Middleware Tests**: Verify that middleware components correctly handle requests
+   - Test HTTP disabling when configured
+   - Test HTTP to HTTPS redirection when enabled
+   - Test proper handling of HTTP requests when allowed
+
+2. **Configuration-Aware Tests**: Tests are designed to respect the current configuration
+   - Tests adapt to whether HTTP disabling is enabled or not
+   - Tests check for appropriate status codes based on configuration
+
+3. **Certificate Management Tests**: Verify Let's Encrypt certificate functionality
+   - Test certificate issuance, renewal, and status checking
+   - Mock Let's Encrypt services to avoid real API calls during testing
 
 Let's Encrypt Integration
 ------------------------
@@ -315,6 +504,37 @@ security:
 2. **Certificate Issuance**: Issue a certificate using the API endpoint.
 3. **Restart**: After certificate issuance, restart the server to enable HTTPS.
 4. **Automatic Renewal**: The server will automatically renew certificates before they expire.
+
+### How It Works
+
+The certificate management module (`modules/certificate_manager.py`) handles the entire lifecycle of SSL/TLS certificates:
+
+1. **Initialization**: When the server starts, it checks for existing certificates and initializes the certificate manager.
+2. **Automatic Scheduler**: Uses APScheduler to create a background task for certificate renewal checks.
+3. **Certificate Issuance**: When requested, it obtains new certificates from Let's Encrypt via ACME protocol.
+4. **Certificate Storage**: Stores certificates and private keys securely in the configured directory.
+5. **Renewal Checks**: Periodically checks certificate expiration dates and automatically renews when needed.
+6. **Challenge Handling**: Supports HTTP-01 challenges for domain validation.
+
+### Configuring DNS Challenges
+
+By default, the system uses HTTP-01 challenges for domain validation. For wildcard certificates or domains behind firewalls, you can use DNS-01 challenges:
+
+```yaml
+letsencrypt:
+  challenge_type: "dns-01"
+  dns_provider: "cloudflare"  # Supported: cloudflare, route53, etc.
+  dns_credentials:
+    api_token: "your_api_token"  # Store this in environment variables instead
+```
+
+### Testing in Local Environments
+
+For local testing without a public domain, you can:
+
+1. Use the Let's Encrypt staging environment (`staging: true`)
+2. Use a tool like ngrok to expose your local server publicly
+3. Configure the domains in your config.yaml to match your ngrok URL
 
 Customization
 -------------
@@ -520,6 +740,19 @@ Contributing
 ------------
 
 Contributions are welcome! Please fork the repository and submit a pull request with your changes.
+
+### Recent Improvements
+
+- Fixed FastAPI test fixtures to handle authentication correctly
+- Added configuration-aware tests that respect settings in config.yaml
+- Enhanced Let's Encrypt certificate management with robust testing
+- Fixed HTTP security tests and middleware implementation
+- Improved API endpoint testing with direct test endpoints instead of mocked calls
+- Fixed JSON boolean values in test fixtures (using Python True instead of JSON true)
+- Added comprehensive documentation for all security features
+- Enhanced test suite with better async mocking strategies
+- Updated testing documentation to clarify that API key authentication should be disabled during testing
+- Added instructions for running benchmark and stability tests with a running server
 
 License
 -------
