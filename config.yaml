@@ -1,0 +1,72 @@
+# Server Configuration
+server:
+  title: "darktheme-auth-fastapi-server"
+  version: "v05.05.2025"
+  description: "API server with authentication and authorization."
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+
+# Redis Configuration
+redis:
+  enabled: false  # Set to false to disable Redis
+  hosts:
+    - localhost
+    - redis
+    - 0.0.0.0
+  port: 6379
+  db: 0
+  decode_responses: true
+
+# CORS Configuration
+cors:
+  origins:
+    - "*"
+    - "http://localhost"
+    - "http://localhost:3000"
+    - "http://192.168.110.128"
+  allow_credentials: true
+  allow_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "PATCH"
+    - "DELETE"
+  allow_headers:
+    - "*"
+  expose_headers:
+    - "Content-Disposition"
+
+# API Configuration
+api:
+  prefix: "/api/v1"
+
+# Logging Configuration
+logging:
+  # Root directory for database
+  directory: "./logs"
+  
+  # Max number of log records (for query pagination)
+  max_records: 10000
+  
+  # Enable SQLite database logging
+  use_sqlite: true
+  
+  # SQLite database file (relative to directory path)
+  sqlite_db: "app_logs.db"
+  
+  # Log types configuration
+  access:
+    enabled: true
+    level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    format: "[%(asctime)s] [%(levelname)s] [%(client_ip)s] [%(username)s] %(message)s"
+  
+  security:
+    enabled: true
+    level: "INFO"
+    format: "[%(asctime)s] [%(levelname)s] [%(client_ip)s] [%(username)s] %(message)s"
+  
+  system:
+    enabled: true
+    level: "INFO"
+    format: "[%(asctime)s] [%(levelname)s] [%(module)s] [%(funcName)s] %(message)s"

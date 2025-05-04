@@ -1,0 +1,19 @@
+fastapi
+httpx
+redis
+starlette
+asyncio
+bson
+python-dotenv
+pyyaml
+psutil
+aiosqlite
+
+# Test dependencies
+pytest
+pytest-asyncio
+pytest-timeout
+pytest-html
+aiohttp
+matplotlib
+numpy
