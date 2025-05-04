@@ -20,6 +20,7 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -40,25 +41,39 @@ htmlcov/
 .tox/
 .nox/
 .coverage
+.coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
+.pytest_cache/
+cover/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
 # Environments
+.env
+.venv
 .env.bak
 .env.backup
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Claude tool files
+.claude
+CLAUDE.md
 
 # pyenv
 .python-version
 
-# pytest
-.cache/
+# pytype static type analyzer
+.pytype/
 
 # mypy
 .mypy_cache/
@@ -66,36 +81,56 @@ coverage.xml
 dmypy.json
 
 # Pydantic
+# Note: consider keeping schema files and only ignore generated files
 *.json
 
 # SQLAlchemy
 *.db
 *.sqlite
+*.sqlite3
 
 # PyCharm
 .idea/
+*.iml
+*.iws
+*.ipr
 
 # VS Code
 .vscode/
-
-# Pytest cache
-.pytest_cache/
-
-# Local virtual environments
-venv/
-ENV/
-env/
-.env/
-env.bak/
-env.backup/
+*.code-workspace
 
 # Docker
 *.log
 *.pid
 *.pid.lock
+docker-data/
 
 # Mac OS
 .DS_Store
+.AppleDouble
+.LSOverride
 
-# logs
-logs/*
+# Logs
+logs/
+logs/*.log
+logs/*.db
+logs/*.sqlite
+logs/*.sqlite3
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local development settings
+settings_local.py
+local_settings.py
+
+# Redis
+dump.rdb
+*.rdb
+
+# FastAPI specific
+
+# Testing
+test_reports/
+tests/benchmark/reports/
+tests/stability/reports/

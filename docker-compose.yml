@@ -4,10 +4,17 @@ services:
   redis:
     image: "redis:latest"
     container_name: "redis_server"
+    profiles:
+      - redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   app:
     build:
@@ -21,10 +28,11 @@ services:
       - ./logs:/var/log/app  # Map the local logs directory to /var/log/app in the container
     ports:
       - "8000:8000"
-    depends_on:
-      - redis
     env_file:
       - .env  # Load environment variables from a .env file
+    profiles:
+      - redis
+      - default
 
 volumes:
   redis_data:

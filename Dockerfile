@@ -1,9 +1,9 @@
-# Use the official Python image with version 3.12.4 slim
-FROM python:3.12.4-slim
+# Use the official Python image with version 3.13.3 slim
+FROM python:3.13.3-slim
 
 # Metadata as labels
 LABEL maintainer="George Khananaev"
-LABEL description="A template FastAPI server with dark-themed docs, authentication, and Redis caching."
+LABEL description="A template FastAPI server with dark-themed docs, authentication, and optional Redis caching."
 
 # Set the working directory in the container
 WORKDIR /app
