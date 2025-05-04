@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import Dict, List, Optional
 from datetime import datetime, date
 from pydantic import BaseModel, Field
-from auth.fastapi_auth import get_secret_key, get_client_ip
+from auth.fastapi_auth import get_client_ip, verify_auth, create_auth_dependency, AuthOptions
 from modules.logger import get_logs, get_log_counts, log_access
 
 router = APIRouter(prefix="/logs", tags=["Logs"])
@@ -52,13 +52,12 @@ class LogCountResponse(BaseModel):
 
 @router.get("/counts", response_model=LogCountResponse)
 async def get_log_count_endpoint(
-    client_ip: str = Depends(get_client_ip),
-    _: Dict = Depends(get_secret_key)
+    auth_info: Dict = Depends(create_auth_dependency(AuthOptions.ANY_AUTH_METHOD))
 ) -> Dict:
     """
     Get counts of logs in all tables
     """
-    log_access("Retrieving log counts", client_ip=client_ip)
+    log_access("Retrieving log counts", client_ip=auth_info.get("client_ip", "unknown"))
     
     counts = await get_log_counts()
     counts["total"] = sum(counts.values())
@@ -73,13 +72,12 @@ async def get_access_logs(
     start_date: Optional[str] = Query(None, description="Filter logs after this date (format: YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="Filter logs before this date (format: YYYY-MM-DD)"),
     search: Optional[str] = Query(None, description="Search term to filter messages"),
-    client_ip: str = Depends(get_client_ip),
-    _: Dict = Depends(get_secret_key)
+    auth_info: Dict = Depends(create_auth_dependency(AuthOptions.REQUIRE_API_KEY))
 ) -> List[Dict]:
     """
     Get access logs with filtering options
     """
-    log_access(f"Retrieving access logs (limit={limit}, offset={offset})", client_ip=client_ip)
+    log_access(f"Retrieving access logs (limit={limit}, offset={offset})", client_ip=auth_info.get("client_ip", "unknown"))
     
     try:
         return await get_logs(
@@ -102,13 +100,12 @@ async def get_security_logs(
     start_date: Optional[str] = Query(None, description="Filter logs after this date (format: YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="Filter logs before this date (format: YYYY-MM-DD)"),
     search: Optional[str] = Query(None, description="Search term to filter messages"),
-    client_ip: str = Depends(get_client_ip),
-    _: Dict = Depends(get_secret_key)
+    auth_info: Dict = Depends(create_auth_dependency(AuthOptions.REQUIRE_BEARER))
 ) -> List[Dict]:
     """
     Get security logs with filtering options
     """
-    log_access(f"Retrieving security logs (limit={limit}, offset={offset})", client_ip=client_ip)
+    log_access(f"Retrieving security logs (limit={limit}, offset={offset})", client_ip=auth_info.get("client_ip", "unknown"))
     
     try:
         return await get_logs(
@@ -131,13 +128,12 @@ async def get_system_logs(
     start_date: Optional[str] = Query(None, description="Filter logs after this date (format: YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="Filter logs before this date (format: YYYY-MM-DD)"),
     search: Optional[str] = Query(None, description="Search term to filter messages"),
-    client_ip: str = Depends(get_client_ip),
-    _: Dict = Depends(get_secret_key)
+    auth_info: Dict = Depends(create_auth_dependency(AuthOptions.ANY_AUTH_METHOD))
 ) -> List[Dict]:
     """
     Get system logs with filtering options
     """
-    log_access(f"Retrieving system logs (limit={limit}, offset={offset})", client_ip=client_ip)
+    log_access(f"Retrieving system logs (limit={limit}, offset={offset})", client_ip=auth_info.get("client_ip", "unknown"))
     
     try:
         return await get_logs(

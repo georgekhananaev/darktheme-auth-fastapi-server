@@ -8,10 +8,12 @@ By leveraging this template, you can focus on developing your unique application
 --------
 
 - **Authentication & Security**: Includes token-based authentication for securing API endpoints and HTTP Basic authentication for accessing documentation.
+- **Enhanced HTTP Security**: Offers HTTP disabling, HTTP-to-HTTPS redirection, and Let's Encrypt integration for comprehensive security.
 - **Protected Documentation**: Custom dark-themed Swagger UI and ReDoc documentation, accessible only after authentication.
 - **Optional Redis Caching**: Utilizes Redis for caching to improve performance and reduce load on backend services. Can be disabled for simpler deployments.
 - **SQLite Log Storage**: Efficient logging system using SQLite database for storage and retrieval, with API endpoints for access.
 - **Log Viewer API**: Access logs through the API with filtering, pagination and search capabilities.
+- **Let's Encrypt Integration**: Built-in support for Let's Encrypt, providing automatic SSL/TLS certificate issuance and renewal.
 - **Comprehensive Test Suite**: Includes unit tests, API tests, benchmark tests, and stability tests.
 - **Environment Configuration**: Uses environment variables for configuration, ensuring sensitive information is kept secure.
 - **YAML Configuration**: Uses a config.yaml file for application settings, making it easy to customize the server behavior.
@@ -149,7 +151,15 @@ Project Structure
 - **`db/`**: Contains database clients (Redis and SQLite).
 - **`auth/`**: Includes authentication-related functions and security settings.
 - **`routers/`**: Contains route definitions and API logic.
+  - **`certificates.py`**: Let's Encrypt certificate management endpoints.
+  - **`logs.py`**: Log access and retrieval endpoints.
+  - **`system.py`**: System health and information endpoints.
 - **`modules/`**: Houses shared modules like logging utilities, middleware, and configuration handling.
+  - **`certificate_manager.py`**: Let's Encrypt certificate management module.
+  - **`config.py`**: Configuration handling module.
+  - **`logger.py`**: Logging utilities.
+  - **`middleware.py`**: FastAPI middleware components.
+- **`certs/`**: Directory where SSL/TLS certificates are stored.
 - **`logs/`**: Directory where logs and log database are stored.
 - **`tests/`**: Comprehensive test suite including unit, API, benchmark, and stability tests.
 
@@ -197,6 +207,98 @@ The application implements a robust logging system that stores logs in both a SQ
 
 - **SQLite Storage**: All logs are stored in a SQLite database in the logs directory
 - **API Access**: Logs can be queried through the API with filtering and pagination
+
+Enhanced HTTP Security
+-----------------
+
+The application offers multiple ways to enhance HTTP security:
+
+- **HTTP Disabling**: You can completely disable HTTP, allowing only HTTPS connections
+- **HTTP to HTTPS Redirection**: Automatically redirect HTTP requests to HTTPS
+- **Let's Encrypt Integration**: Automate SSL/TLS certificate issuance and renewal
+- **Flexible Configuration**: Configure security settings via config.yaml
+
+### HTTP Security Configuration
+
+1. **Disable HTTP Entirely** (maximum security):
+   ```yaml
+   security:
+     http:
+       enabled: false  # Disable HTTP entirely
+     https:
+       enabled: true   # HTTPS must be enabled when HTTP is disabled
+   ```
+
+2. **Redirect HTTP to HTTPS** (user-friendly):
+   ```yaml
+   security:
+     http:
+       enabled: true   # Keep HTTP enabled for redirection
+     https:
+       enabled: true
+       redirect_http: true  # Redirect all HTTP requests to HTTPS
+   ```
+
+3. **HTTP and HTTPS Side-by-Side**:
+   ```yaml
+   security:
+     http:
+       enabled: true
+     https:
+       enabled: true
+       redirect_http: false  # No redirection
+   ```
+
+Let's Encrypt Integration
+------------------------
+
+The application includes built-in support for Let's Encrypt, providing automatic SSL/TLS certificate issuance and renewal:
+
+- **Easy Configuration**: Enable Let's Encrypt via config.yaml
+- **Automatic Renewal**: Certificates are automatically renewed before expiry
+- **API Endpoints**: Manage certificates through API endpoints
+- **No External Dependencies**: All certificate management is handled internally
+
+### Let's Encrypt Configuration
+
+To enable Let's Encrypt:
+
+1. Update the `config.yaml` file:
+
+```yaml
+security:
+  https:
+    enabled: true                     # Must be true to enable HTTPS
+    mode: "letsencrypt"               # Set mode to "letsencrypt"
+  
+  letsencrypt:
+    enabled: true                     # Enable Let's Encrypt
+    email: "your-email@example.com"   # Required for registration
+    domains:                          # List of domains to secure
+      - "yourdomain.com"
+      - "www.yourdomain.com"
+    staging: true                     # Use staging server for testing (set to false for production)
+    cert_dir: "./certs"               # Directory to store certificates
+    challenge_type: "http-01"         # HTTP-01 validation method
+    auto_renew: true                  # Enable automatic renewal
+    renew_before_days: 30             # Renew certificates 30 days before expiry
+```
+
+2. Start the server with `run_local.sh` or Docker Compose.
+
+3. Use the certificate management API endpoints for manual operations:
+
+   - Get certificate info: `GET /api/v1/certificates/info`
+   - Issue new certificate: `POST /api/v1/certificates/issue`
+   - Renew certificate: `POST /api/v1/certificates/renew`
+   - Check certificate status: `GET /api/v1/certificates/status`
+
+### Certificate Management Workflow
+
+1. **First Run**: If Let's Encrypt is enabled but no certificates exist, the server will start without HTTPS.
+2. **Certificate Issuance**: Issue a certificate using the API endpoint.
+3. **Restart**: After certificate issuance, restart the server to enable HTTPS.
+4. **Automatic Renewal**: The server will automatically renew certificates before they expire.
 
 Customization
 -------------
@@ -317,15 +419,31 @@ docs:
 
 ```yaml
 security:
+  http:
+    enabled: true                      # Enable HTTP (set to false to disable HTTP entirely)
+  
   https:
-    enabled: false                    # Enable for production
-    cert_file: "./certs/server.crt"
-    key_file: "./certs/server.key"
+    enabled: false                     # Enable for production
+    mode: "custom"                     # Options: "custom", "letsencrypt"
+    cert_file: "./certs/server.crt"    # Used when mode is "custom"
+    key_file: "./certs/server.key"     # Used when mode is "custom"
+    redirect_http: false               # Redirect HTTP to HTTPS (when both HTTP and HTTPS are enabled)
+  
+  letsencrypt:
+    enabled: false                     # Enable Let's Encrypt certificates
+    email: ""                          # Required for Let's Encrypt registration
+    domains: []                        # List of domains for the certificate
+    staging: true                      # Use staging server for testing (set to false for production)
+    cert_dir: "./certs"                # Directory to store certificates
+    challenge_type: "http-01"          # Challenge type (http-01 or dns-01)
+    auto_renew: true                   # Enable automatic certificate renewal
+    renew_before_days: 30              # Number of days before expiry to renew
   
   api_key:
-    enabled: false
-    header_name: "X-API-Key"
-    # Actual keys should be stored in environment variables
+    enabled: false                     # Set to true to enable API key authentication
+    header_name: "X-API-Key"           # The HTTP header name to use for API key
+    # Actual keys should be stored in environment variables (.env file)
+    # Add API_KEY=your_api_key_here to your .env file
 ```
 
 ### Configuration Tips
@@ -338,6 +456,44 @@ security:
    - In production, set `cors.origins` to specific domains, not `"*"`
    - Enable HTTPS in production by setting `security.https.enabled: true`
    - Store sensitive data in environment variables, not in the config file
+   - You can selectively enable API key authentication with `security.api_key.enabled: true`
+   - Different endpoints can use different authentication methods:
+     - Bearer token only
+     - API key only
+     - Either Bearer token or API key
+     - No authentication
+   - For maximum security in production, disable HTTP entirely and use HTTPS only:
+     ```yaml
+     security:
+       http:
+         enabled: false  # Disable HTTP entirely
+       https:
+         enabled: true
+         mode: "custom"  # or "letsencrypt"
+     ```
+   - Alternatively, enable automatic HTTP to HTTPS redirection:
+     ```yaml
+     security:
+       http:
+         enabled: true  # Allow HTTP for redirection
+       https:
+         enabled: true
+         redirect_http: true  # Redirect HTTP to HTTPS
+     ```
+   - For production, consider using Let's Encrypt for free, automated SSL certificates by setting:
+     ```yaml
+     security:
+       https:
+         enabled: true
+         mode: "letsencrypt"
+       letsencrypt:
+         enabled: true
+         email: "your-email@example.com"  # Required for Let's Encrypt
+         domains:
+           - "example.com"
+           - "www.example.com"
+         staging: false  # Set to false for production certificates
+     ```
 
 3. **Performance Tuning**:
    - Adjust `logging.max_records` based on your application's logging volume

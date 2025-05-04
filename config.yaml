@@ -7,6 +7,34 @@ server:
   port: 8000
   reload: true
 
+# Security Configuration
+security:
+  http:
+    enabled: true                      # Enable HTTP (set to false to disable HTTP entirely)
+  
+  https:
+    enabled: false                     # Enable for production
+    mode: "custom"                     # Options: "custom", "letsencrypt"
+    cert_file: "./certs/server.crt"    # Used when mode is "custom"
+    key_file: "./certs/server.key"     # Used when mode is "custom"
+    redirect_http: false               # Redirect HTTP to HTTPS
+  
+  letsencrypt:
+    enabled: false                     # Enable Let's Encrypt certificates
+    email: ""                          # Required for Let's Encrypt registration
+    domains: []                        # List of domains for the certificate
+    staging: true                      # Use staging server for testing (set to false for production)
+    cert_dir: "./certs"                # Directory to store certificates
+    challenge_type: "http-01"          # Challenge type (http-01 or dns-01)
+    auto_renew: true                   # Enable automatic certificate renewal
+    renew_before_days: 30              # Number of days before expiry to renew
+  
+  api_key:
+    enabled: true
+    header_name: "X-API-Key"
+    # Actual keys are stored in environment variables (.env file)
+    # API_KEY is used for API key authentication
+
 # Redis Configuration
 redis:
   enabled: false  # Set to false to disable Redis

@@ -6,9 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from auth.fastapi_auth import verify_credentials, get_secret_key
 from modules.logger import log_system, logger
 from modules.static_files import mount_static_files
-from modules.middleware import LoggingMiddleware
+from modules.middleware import LoggingMiddleware, HTTPSRedirectMiddleware, HTTPDisableMiddleware
 from modules.config import config
-from routers import system, logs
+from modules.certificate_manager import certificate_manager
+from routers import system, logs, certificates
 from db.clientRedis import AsyncRedisClient
 from db.clientSQLite import AsyncSQLiteClient
 from contextlib import asynccontextmanager
@@ -56,11 +57,31 @@ async def lifespan(myapp: CustomFastAPI):
     else:
         log_system("Redis is disabled in configuration", level="INFO")
     
+    # Initialize certificate manager for Let's Encrypt if enabled
+    if config.is_letsencrypt_enabled():
+        log_system("Let's Encrypt is enabled, initializing certificate manager", level="INFO")
+        try:
+            # Start certificate manager with automatic renewal
+            await certificate_manager.start()
+            log_system("Certificate manager started successfully", level="INFO")
+        except Exception as e:
+            log_system(f"Error starting certificate manager: {e}", level="ERROR")
+    else:
+        log_system("Let's Encrypt is disabled, skipping certificate manager initialization", level="INFO")
+    
     try:
         yield
     except Exception as e:
         log_system(f"Error during application lifecycle: {e}", level="ERROR")
     finally:
+        # Stop certificate manager if Let's Encrypt is enabled
+        if config.is_letsencrypt_enabled():
+            try:
+                await certificate_manager.stop()
+                log_system("Certificate manager stopped", level="INFO")
+            except Exception as e:
+                log_system(f"Error stopping certificate manager: {e}", level="ERROR")
+        
         # Clean up and close the Redis client on shutdown if it was initialized
         if myapp.redis_client:
             await AsyncRedisClient.close()
@@ -82,6 +103,10 @@ app = CustomFastAPI(
     openapi_url=None,  # Disable the default OpenAPI schema endpoint
 )
 app.lifespan_context = lifespan  # Set the lifespan context manager
+
+# Add HTTP management middleware
+app.add_middleware(HTTPDisableMiddleware)  # Check if HTTP is disabled
+app.add_middleware(HTTPSRedirectMiddleware)  # Redirect HTTP to HTTPS if enabled
 
 # Add logging middleware
 app.add_middleware(LoggingMiddleware)
@@ -121,6 +146,15 @@ app.include_router(
     prefix=f'{prefix_path}',
     tags=["Logs"]  # Tag for grouping in the OpenAPI docs
 )
+
+# Include certificates router for Let's Encrypt management only if enabled
+if config.is_letsencrypt_enabled():
+    log_system("Let's Encrypt is enabled, adding certificate management endpoints", level="INFO")
+    app.include_router(
+        certificates.router,
+        prefix=f'{prefix_path}/certificates',
+        tags=["Certificates"]  # Tag for grouping in the OpenAPI docs
+    )
 
 
 # Custom OpenAPI schema endpoint

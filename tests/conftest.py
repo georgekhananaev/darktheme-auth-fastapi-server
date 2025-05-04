@@ -110,8 +110,23 @@ async def setup_test_db(test_db_path):
 @pytest.fixture(scope="function")
 def app() -> FastAPI:
     """Create a fresh app instance for testing."""
+    # Temporarily save the original environment variable if it exists
+    original_disable_http = os.environ.get("DISABLE_HTTP", None)
+    
+    # Set environment variable to enable HTTP for testing
+    os.environ["DISABLE_HTTP"] = "0"
+    
+    # Import the app with HTTP enabled for testing
     from main import app as main_app
-    return main_app
+    
+    try:
+        yield main_app
+    finally:
+        # Restore original environment variable state
+        if original_disable_http is not None:
+            os.environ["DISABLE_HTTP"] = original_disable_http
+        else:
+            os.environ.pop("DISABLE_HTTP", None)
 
 
 @pytest.fixture(scope="function")
@@ -150,3 +165,38 @@ def stability_settings():
         "ramp_up_seconds": 5,
         "requests_per_second": 50,
     }
+
+
+@pytest.fixture(scope="function")
+def app_with_http_disabled() -> FastAPI:
+    """Create a fresh app instance with HTTP disabled for testing."""
+    # Temporarily save the original environment variable if it exists
+    original_disable_http = os.environ.get("DISABLE_HTTP", None)
+    
+    # Set environment variable to disable HTTP for testing
+    os.environ["DISABLE_HTTP"] = "1"
+    
+    # Import the app with HTTP disabled for testing
+    from main import app as main_app
+    
+    try:
+        # Return the app with HTTP disabled
+        yield main_app
+    finally:
+        # Restore original environment variable state
+        if original_disable_http is not None:
+            os.environ["DISABLE_HTTP"] = original_disable_http
+        else:
+            os.environ.pop("DISABLE_HTTP", None)
+
+
+@pytest.fixture(scope="function")
+def client_with_http_disabled(app_with_http_disabled) -> Generator:
+    """Create a TestClient with HTTP disabled for testing."""
+    with TestClient(app_with_http_disabled) as test_client:
+        # Pass X-Forwarded-Proto header to simulate HTTP request
+        test_client.headers = {
+            "X-Forwarded-Proto": "http",
+            **test_client.headers
+        }
+        yield test_client

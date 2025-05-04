@@ -160,6 +160,102 @@ class Config:
             str: API prefix
         """
         return cls.get('api', 'prefix', '/api/v1')
+        
+    @classmethod
+    def get_security_config(cls) -> Dict[str, Any]:
+        """
+        Get security configuration.
+        
+        Returns:
+            Dict: Security configuration including HTTP, HTTPS, Let's Encrypt, and API Key settings
+        """
+        return cls.get('security', default={
+            'http': {
+                'enabled': True
+            },
+            'https': {
+                'enabled': False,
+                'mode': 'custom',
+                'cert_file': './certs/server.crt',
+                'key_file': './certs/server.key',
+                'redirect_http': False
+            },
+            'letsencrypt': {
+                'enabled': False,
+                'email': '',
+                'domains': [],
+                'staging': True,
+                'cert_dir': './certs',
+                'challenge_type': 'http-01',
+                'auto_renew': True,
+                'renew_before_days': 30
+            },
+            'api_key': {
+                'enabled': False,
+                'header_name': 'X-API-Key'
+            }
+        })
+    
+    @classmethod
+    def get_letsencrypt_config(cls) -> Dict[str, Any]:
+        """
+        Get Let's Encrypt configuration.
+        
+        Returns:
+            Dict: Let's Encrypt configuration
+        """
+        security_config = cls.get_security_config()
+        return security_config.get('letsencrypt', {})
+    
+    @classmethod
+    def is_https_enabled(cls) -> bool:
+        """
+        Check if HTTPS is enabled in the configuration.
+        
+        Returns:
+            bool: True if HTTPS is enabled, False otherwise
+        """
+        security_config = cls.get_security_config()
+        return security_config.get('https', {}).get('enabled', False)
+    
+    @classmethod
+    def is_letsencrypt_enabled(cls) -> bool:
+        """
+        Check if Let's Encrypt is enabled in the configuration.
+        
+        Returns:
+            bool: True if Let's Encrypt is enabled, False otherwise
+        """
+        security_config = cls.get_security_config()
+        https_config = security_config.get('https', {})
+        letsencrypt_config = security_config.get('letsencrypt', {})
+        
+        # Let's Encrypt is enabled if HTTPS is enabled, mode is 'letsencrypt', and letsencrypt.enabled is True
+        return (https_config.get('enabled', False) and 
+                https_config.get('mode') == 'letsencrypt' and 
+                letsencrypt_config.get('enabled', False))
+    
+    @classmethod
+    def is_http_enabled(cls) -> bool:
+        """
+        Check if HTTP is enabled in the configuration.
+        
+        Returns:
+            bool: True if HTTP is enabled, False otherwise
+        """
+        security_config = cls.get_security_config()
+        return security_config.get('http', {}).get('enabled', True)
+    
+    @classmethod
+    def is_http_to_https_redirect_enabled(cls) -> bool:
+        """
+        Check if HTTP to HTTPS redirection is enabled in the configuration.
+        
+        Returns:
+            bool: True if HTTP to HTTPS redirection is enabled, False otherwise
+        """
+        security_config = cls.get_security_config()
+        return security_config.get('https', {}).get('redirect_http', False)
 
 
 # Create a global instance for convenient access

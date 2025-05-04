@@ -8,6 +8,12 @@ python-dotenv
 pyyaml
 psutil
 aiosqlite
+certbot
+certbot-nginx
+acme
+cryptography
+apscheduler
+uvicorn
 
 # Test dependencies
 pytest

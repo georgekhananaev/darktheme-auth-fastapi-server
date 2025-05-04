@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Request
 import time
 import asyncio
 from datetime import datetime
-from auth.fastapi_auth import get_secret_key, get_client_ip
+from typing import Dict
+from auth.fastapi_auth import get_client_ip, verify_auth, create_auth_dependency, AuthOptions
 from modules.cache_handler import (
     CacheHandler,
     fetch_and_cache_time
@@ -14,7 +15,10 @@ router = APIRouter()
 
 
 @router.get("/ping")
-async def ping(request: Request = None):
+async def ping(
+    request: Request = None,
+    auth_info: Dict = Depends(create_auth_dependency(AuthOptions.NO_AUTH))
+):
     """
     Simple ping endpoint that returns 'pong' and response time metrics
     """
@@ -27,8 +31,8 @@ async def ping(request: Request = None):
     end_time = time.time()
     end_process_time = time.process_time()
     
-    # Get client IP for logging
-    client_ip = await get_client_ip(request) if request else "unknown"
+    # Get client IP from auth_info
+    client_ip = auth_info.get("client_ip", "unknown")
     
     # Log ping request
     log_access(
@@ -57,8 +61,12 @@ async def ping(request: Request = None):
     }
 
 
-@router.get("/health", dependencies=[Depends(get_secret_key)])
-async def health_check(request: Request, redis = Depends(CacheHandler.get_redis_client)):
+@router.get("/health")
+async def health_check(
+    request: Request, 
+    redis = Depends(CacheHandler.get_redis_client),
+    auth_info: Dict = Depends(create_auth_dependency(AuthOptions.REQUIRE_BEARER))
+):
     """
     Comprehensive health check endpoint that provides details about:
     - Application status and configuration
@@ -71,8 +79,8 @@ async def health_check(request: Request, redis = Depends(CacheHandler.get_redis_
     expire_seconds = 60  # Example expiration time
     time_api = "https://worldtimeapi.org/api/timezone/etc/utc"  # Example URL to get UTC time
 
-    # Get client IP for logging
-    client_ip = await get_client_ip(request) if request else "unknown"
+    # Get client IP from auth_info
+    client_ip = auth_info.get("client_ip", "unknown")
     
     # Log health check request
     log_access(
