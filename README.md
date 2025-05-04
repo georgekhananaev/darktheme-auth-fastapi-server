@@ -93,24 +93,6 @@ Getting Started
 
    This command builds the Docker images and starts the containers for the application and optionally Redis.
 
-## Screenshots
-
-<p align="center">
-  <img src="/screenshots/swagger-ui-docs.png" alt="Dark Theme Swagger UI" width="900">
-  <br><em>Dark Theme Swagger UI Documentation</em>
-</p>
-
-<table>
-  <tr>
-    <td width="50%"><img src="/screenshots/running_server.png" alt="Running Server" width="100%"><br><em>Server running in terminal</em></td>
-    <td width="50%"><img src="/screenshots/docs-protected.png" alt="Protected Documentation" width="100%"><br><em>Authentication-protected documentation</em></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="/screenshots/access-with-api-key.png" alt="API Key Authentication" width="100%"><br><em>API key authentication</em></td>
-    <td width="50%"><img src="/screenshots/logs-db-stracture.png" alt="Logs Database Structure" width="100%"><br><em>SQLite logs database structure</em></td>
-  </tr>
-</table>
-
 #### Running Locally
 
 1. **Clone the repository:**
