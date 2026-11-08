@@ -116,7 +116,7 @@ packaging==25.0
     #   pytest
 parsedatetime==2.6
     # via certbot
-pillow==11.2.1
+pillow==13.0.0
     # via matplotlib
 pluggy==1.5.0
     # via pytest
