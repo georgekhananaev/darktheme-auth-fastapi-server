@@ -37,7 +37,7 @@ certbot==4.0.0
     #   certbot-nginx
 certbot-nginx==4.0.0
     # via -r requirements.in
-certifi==2025.4.26
+certifi==2026.10.18
     # via
     #   httpcore
     #   httpx
