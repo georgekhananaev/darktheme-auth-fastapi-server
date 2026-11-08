@@ -164,7 +164,7 @@ async def verify_credentials(credentials: HTTPBasicCredentials = Depends(securit
 
 async def verify_api_key(
     request: Request, 
-    api_key: Optional[str] = Header(None, name=API_KEY_HEADER if API_KEY_ENABLED else "X-API-Key", include_in_schema=API_KEY_ENABLED)
+    api_key: Optional[str] = Header(None, alias=API_KEY_HEADER if API_KEY_ENABLED else "X-API-Key", include_in_schema=API_KEY_ENABLED)
 ):
     """
     Verifies the API key in the request header.
