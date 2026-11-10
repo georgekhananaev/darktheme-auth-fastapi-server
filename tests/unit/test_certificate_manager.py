@@ -42,8 +42,9 @@ def test_rejects_domains_that_could_become_options_or_paths(certbot_calls, domai
     assert certbot_calls == []
 
 
-def test_rejects_invalid_email(certbot_calls):
-    result = issue(domains=["example.com"], email="--agree-tos")
+@pytest.mark.parametrize("email", ["--agree-tos", "-d@example.com", "a@b@example.com", "admin@--config"])
+def test_rejects_invalid_email(certbot_calls, email):
+    result = issue(domains=["example.com"], email=email)
     assert result["success"] is False
     assert certbot_calls == []
 

@@ -21,7 +21,7 @@ certbot_logger = logging.getLogger("certbot")
 # dashes) is rejected without risking slow regex backtracking on long input.
 _LABEL_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?")
 _TLD_RE = re.compile(r"[A-Za-z]{2,63}")
-_EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9._%+-]{1,64}")
+_EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}")
 _CERTBOT_LIVE_DIR = "/etc/letsencrypt/live"
 
 
