@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import subprocess
 import datetime
@@ -14,6 +15,12 @@ from modules.logger import log_system
 
 # Set up logger for the certbot process
 certbot_logger = logging.getLogger("certbot")
+
+# A hostname, optionally with a leading "*." wildcard. Anything else (spaces, slashes,
+# leading dashes) is rejected so it can't become a certbot option or a path.
+_DOMAIN_RE = re.compile(r"(\*\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}")
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}")
+_CERTBOT_LIVE_DIR = "/etc/letsencrypt/live"
 
 
 class CertificateManager:
@@ -140,13 +147,24 @@ class CertificateManager:
             log_system(error_msg, level="ERROR")
             return {"success": False, "message": error_msg}
         
-        # Prepare the certbot command
+        invalid_domains = [d for d in domains if not _DOMAIN_RE.fullmatch(d)]
+        if invalid_domains:
+            error_msg = f"Invalid domain name(s): {', '.join(invalid_domains)}"
+            log_system(error_msg, level="ERROR")
+            return {"success": False, "message": error_msg}
+
+        if not _EMAIL_RE.fullmatch(email):
+            error_msg = "Invalid email address for Let's Encrypt registration"
+            log_system(error_msg, level="ERROR")
+            return {"success": False, "message": error_msg}
+
+        # Prepare the certbot command (each value is its own argument)
         certbot_cmd = [
             "certbot", "certonly",
             "--non-interactive",
             f"--{cls._challenge_type}",
             "--agree-tos",
-            f"--email={email}"
+            "--email", email,
         ]
         
         # Add staging flag if requested
@@ -155,7 +173,7 @@ class CertificateManager:
         
         # Add domains
         for domain in domains:
-            certbot_cmd.append(f"-d {domain}")
+            certbot_cmd.extend(["-d", domain])
         
         # Add force-renewal flag if requested
         if force_renewal:
@@ -267,8 +285,16 @@ class CertificateManager:
             bool indicating if the operation was successful
         """
         try:
-            # Default certbot live directory
-            certbot_live_dir = f"/etc/letsencrypt/live/{primary_domain}"
+            # Certbot names the lineage directory after the domain without the wildcard
+            lineage = primary_domain[2:] if primary_domain.startswith("*.") else primary_domain
+            if not _DOMAIN_RE.fullmatch(lineage):
+                log_system(f"Refusing to copy certificates for invalid domain: {primary_domain}", level="ERROR")
+                return False
+
+            certbot_live_dir = os.path.normpath(os.path.join(_CERTBOT_LIVE_DIR, lineage))
+            if not certbot_live_dir.startswith(_CERTBOT_LIVE_DIR + os.sep):
+                log_system(f"Refusing to read outside {_CERTBOT_LIVE_DIR}: {certbot_live_dir}", level="ERROR")
+                return False
             
             # Check if the directory exists
             if not os.path.exists(certbot_live_dir):
@@ -433,11 +459,11 @@ class CertificateManager:
                 cert_data = f.read()
                 
             cert = x509.load_pem_x509_certificate(cert_data, default_backend())
-            expiry_date = cert.not_valid_after
-            now = datetime.datetime.now()
+            expiry_date = cert.not_valid_after_utc
+            now = datetime.datetime.now(datetime.timezone.utc)
             
             # Calculate days remaining until expiry
-            days_remaining = (expiry_date - now.replace(tzinfo=None)).days
+            days_remaining = (expiry_date - now).days
             
             return True, days_remaining
             
@@ -474,7 +500,7 @@ class CertificateManager:
                 cert_data = f.read()
                 
             cert = x509.load_pem_x509_certificate(cert_data, default_backend())
-            expiry_date = cert.not_valid_after
+            expiry_date = cert.not_valid_after_utc
             
             return expiry_date.isoformat()
             
@@ -507,8 +533,8 @@ class CertificateManager:
             # Extract certificate information
             issuer = cert.issuer.rfc4514_string()
             subject = cert.subject.rfc4514_string()
-            not_before = cert.not_valid_before
-            not_after = cert.not_valid_after
+            not_before = cert.not_valid_before_utc
+            not_after = cert.not_valid_after_utc
             
             # Extract Subject Alternative Names (domains)
             san = None
@@ -524,8 +550,8 @@ class CertificateManager:
                         domains.append(name.value)
             
             # Calculate days remaining
-            now = datetime.datetime.now()
-            days_remaining = (not_after - now.replace(tzinfo=None)).days
+            now = datetime.datetime.now(datetime.timezone.utc)
+            days_remaining = (not_after - now).days
             
             return {
                 "has_cert": True,
@@ -542,7 +568,6 @@ class CertificateManager:
             log_system(f"Error getting certificate info: {str(e)}", level="ERROR")
             return {
                 "has_cert": True,
-                "error": str(e),
                 "message": "Error parsing certificate"
             }
     
