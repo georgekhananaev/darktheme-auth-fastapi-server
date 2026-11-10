@@ -16,11 +16,34 @@ from modules.logger import log_system
 # Set up logger for the certbot process
 certbot_logger = logging.getLogger("certbot")
 
-# A hostname, optionally with a leading "*." wildcard. Anything else (spaces, slashes,
-# leading dashes) is rejected so it can't become a certbot option or a path.
-_DOMAIN_RE = re.compile(r"(\*\.)?([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}")
-_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}")
+# Hostnames and emails are checked label by label with short, bounded patterns, so
+# anything that could become a certbot option or a path (spaces, slashes, leading
+# dashes) is rejected without risking slow regex backtracking on long input.
+_LABEL_RE = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?")
+_TLD_RE = re.compile(r"[A-Za-z]{2,63}")
+_EMAIL_LOCAL_RE = re.compile(r"[A-Za-z0-9._%+-]{1,64}")
 _CERTBOT_LIVE_DIR = "/etc/letsencrypt/live"
+
+
+def _is_valid_domain(domain: str, allow_wildcard: bool = True) -> bool:
+    """A hostname with at least two labels, optionally with a leading "*." wildcard."""
+    if allow_wildcard and domain.startswith("*."):
+        domain = domain[2:]
+    if not domain or len(domain) > 253:
+        return False
+    labels = domain.split(".")
+    return (
+        len(labels) >= 2
+        and all(len(label) <= 63 and _LABEL_RE.fullmatch(label) for label in labels)
+        and _TLD_RE.fullmatch(labels[-1]) is not None
+    )
+
+
+def _is_valid_email(email: str) -> bool:
+    if len(email) > 254 or email.count("@") != 1:
+        return False
+    local, domain = email.split("@")
+    return _EMAIL_LOCAL_RE.fullmatch(local) is not None and _is_valid_domain(domain, allow_wildcard=False)
 
 
 class CertificateManager:
@@ -147,13 +170,13 @@ class CertificateManager:
             log_system(error_msg, level="ERROR")
             return {"success": False, "message": error_msg}
         
-        invalid_domains = [d for d in domains if not _DOMAIN_RE.fullmatch(d)]
+        invalid_domains = [d for d in domains if not _is_valid_domain(d)]
         if invalid_domains:
             error_msg = f"Invalid domain name(s): {', '.join(invalid_domains)}"
             log_system(error_msg, level="ERROR")
             return {"success": False, "message": error_msg}
 
-        if not _EMAIL_RE.fullmatch(email):
+        if not _is_valid_email(email):
             error_msg = "Invalid email address for Let's Encrypt registration"
             log_system(error_msg, level="ERROR")
             return {"success": False, "message": error_msg}
@@ -287,7 +310,7 @@ class CertificateManager:
         try:
             # Certbot names the lineage directory after the domain without the wildcard
             lineage = primary_domain[2:] if primary_domain.startswith("*.") else primary_domain
-            if not _DOMAIN_RE.fullmatch(lineage):
+            if not _is_valid_domain(lineage, allow_wildcard=False):
                 log_system(f"Refusing to copy certificates for invalid domain: {primary_domain}", level="ERROR")
                 return False
 
